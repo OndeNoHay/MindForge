@@ -9,7 +9,7 @@ class AndroidComposeConventionPlugin : Plugin<Project> {
         with(target) {
             pluginManager.apply("org.jetbrains.kotlin.plugin.compose")
 
-            extensions.configure<CommonExtension<*, *, *, *, *, *>> {
+            extensions.configure<CommonExtension<*, *, *, *, *>> {
                 buildFeatures {
                     compose = true
                 }
