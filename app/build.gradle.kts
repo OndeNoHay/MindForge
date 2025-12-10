@@ -1,9 +1,7 @@
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.hilt)
-    alias(libs.plugins.ksp)
+    id("mindforge.android.application")
     id("mindforge.android.compose")
+    id("mindforge.android.hilt")
 }
 
 android {
@@ -15,10 +13,6 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
-    }
-
-    buildFeatures {
-        compose = true
     }
 }
 
