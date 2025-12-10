@@ -34,6 +34,7 @@ dependencies {
     implementation(project(":core:core-common"))
 
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
 
     // Compose
     implementation(platform(libs.compose.bom))
