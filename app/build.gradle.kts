@@ -1,0 +1,57 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.ksp)
+    id("mindforge.android.compose")
+}
+
+android {
+    namespace = "com.mindforge"
+
+    defaultConfig {
+        applicationId = "com.mindforge"
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    buildFeatures {
+        compose = true
+    }
+}
+
+dependencies {
+    // Core modules
+    implementation(project(":core:core-ui"))
+    implementation(project(":core:core-domain"))
+    implementation(project(":core:core-data"))
+    implementation(project(":core:core-common"))
+    implementation(project(":navigation"))
+
+    // Feature modules
+    implementation(project(":features:feature-home"))
+
+    // AndroidX Core
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.bundles.lifecycle)
+    implementation(libs.androidx.activity.compose)
+
+    // Compose
+    implementation(platform(libs.compose.bom))
+    implementation(libs.bundles.compose)
+    debugImplementation(libs.compose.ui.tooling)
+
+    // Hilt
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.hilt.navigation.compose)
+
+    // Testing
+    testImplementation(libs.bundles.testing.unit)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    androidTestImplementation(libs.bundles.testing.android)
+    androidTestImplementation(platform(libs.compose.bom))
+    debugImplementation(libs.compose.ui.test.manifest)
+}
