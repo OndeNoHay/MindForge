@@ -14,7 +14,9 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    // Repository dependencies will be injected here when available
+    private val userRepository: com.mindforge.core.domain.repository.UserRepository,
+    private val initializeUserUseCase: com.mindforge.core.domain.usecase.InitializeUserUseCase,
+    private val getTodaySessionCountUseCase: com.mindforge.core.domain.usecase.GetTodaySessionCountUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -35,15 +37,23 @@ class HomeViewModel @Inject constructor(
 
     private fun loadUserData() {
         viewModelScope.launch {
-            // TODO: Load user data from repository
-            // For now, using mock data
+            // Initialize user if needed
+            val user = initializeUserUseCase()
+
+            // Get today's session count
+            val todayCount = getTodaySessionCountUseCase(user.id)
+
+            // Calculate XP for next level
+            val XP_PER_LEVEL = 1000
+            val currentXPInLevel = user.totalXP % XP_PER_LEVEL
+
             _uiState.value = HomeUiState(
-                userLevel = 1,
-                currentXP = 250,
-                xpForNextLevel = 1000,
-                currentStreak = 3,
-                dailyGoalSessions = 5,
-                sessionsToday = 2
+                userLevel = user.level,
+                currentXP = currentXPInLevel,
+                xpForNextLevel = XP_PER_LEVEL,
+                currentStreak = user.currentStreak,
+                dailyGoalSessions = user.dailyGoal,
+                sessionsToday = todayCount
             )
         }
     }

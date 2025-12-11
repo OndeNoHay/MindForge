@@ -20,10 +20,13 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class MemoryMatrixViewModel @Inject constructor(
-    // Dependencies will be injected later when we set up the DI module
+    private val gameSessionRepository: com.mindforge.core.domain.repository.GameSessionRepository,
+    private val userRepository: com.mindforge.core.domain.repository.UserRepository,
+    private val initializeUserUseCase: com.mindforge.core.domain.usecase.InitializeUserUseCase
 ) : ViewModel() {
 
     private lateinit var engine: MemoryMatrixEngine
+    private var currentUserId: String? = null
 
     private val _uiState = MutableStateFlow<MemoryMatrixUiState>(MemoryMatrixUiState.Loading)
     val uiState: StateFlow<MemoryMatrixUiState> = _uiState.asStateFlow()
@@ -33,6 +36,12 @@ class MemoryMatrixViewModel @Inject constructor(
             initialDifficulty = difficulty,
             coroutineScope = viewModelScope
         )
+
+        // Initialize user
+        viewModelScope.launch {
+            val user = initializeUserUseCase()
+            currentUserId = user.id
+        }
 
         // Observe engine state
         viewModelScope.launch {
@@ -68,6 +77,27 @@ class MemoryMatrixViewModel @Inject constructor(
     fun onFinishGame() {
         val result = engine.finish()
         _uiState.value = MemoryMatrixUiState.Finished(result)
+
+        // Save the session and update user XP
+        viewModelScope.launch {
+            currentUserId?.let { userId ->
+                // Save game session
+                val session = com.mindforge.core.domain.model.GameSession(
+                    id = java.util.UUID.randomUUID().toString(),
+                    gameType = com.mindforge.core.domain.model.GameType.MEMORY_MATRIX,
+                    startTime = result.timeTaken - result.timeTaken,  // Calculate actual start time if needed
+                    endTime = System.currentTimeMillis(),
+                    score = result.score,
+                    accuracy = result.accuracy,
+                    difficultyLevel = result.difficulty,
+                    xpEarned = result.xpEarned
+                )
+                gameSessionRepository.saveSession(session)
+
+                // Update user XP
+                userRepository.updateXP(userId, result.xpEarned)
+            }
+        }
     }
 
     override fun onCleared() {
