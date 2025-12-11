@@ -20,6 +20,7 @@ import com.mindforge.game.memorymatrix.ui.MemoryMatrixScreen
 import com.mindforge.game.taskprioritizer.ui.TaskPrioritizerScreen
 import com.mindforge.game.nameface.ui.NameFaceScreen
 import com.mindforge.game.meetingrecall.ui.MeetingRecallScreen
+import com.mindforge.game.conceptlinker.ui.ConceptLinkerScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -64,6 +65,9 @@ fun MindForgeNavigation() {
                         GameType.MEETING_RECALL -> {
                             navController.navigate(Screen.MeetingRecall.route)
                         }
+                        GameType.CONCEPT_LINKER -> {
+                            navController.navigate(Screen.ConceptLinker.route)
+                        }
                         else -> {
                             // Other games not implemented yet
                         }
@@ -107,6 +111,15 @@ fun MindForgeNavigation() {
                 }
             )
         }
+
+        composable(Screen.ConceptLinker.route) {
+            ConceptLinkerScreen(
+                difficulty = DifficultyLevel.BEGINNER,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
 
@@ -119,4 +132,5 @@ sealed class Screen(val route: String) {
     object TaskPrioritizer : Screen("task_prioritizer")
     object NameFace : Screen("name_face")
     object MeetingRecall : Screen("meeting_recall")
+    object ConceptLinker : Screen("concept_linker")
 }
