@@ -7,7 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import com.mindforge.core.difficulty.DifficultyLevel
+import com.mindforge.core.domain.model.DifficultyLevel
 import com.mindforge.core.ui.theme.MindForgeTheme
 import com.mindforge.game.memorymatrix.ui.MemoryMatrixScreen
 import dagger.hilt.android.AndroidEntryPoint
