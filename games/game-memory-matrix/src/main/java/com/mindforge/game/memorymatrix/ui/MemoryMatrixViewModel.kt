@@ -2,7 +2,7 @@ package com.mindforge.game.memorymatrix.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mindforge.game.core.difficulty.DifficultyLevel
+import com.mindforge.core.domain.model.DifficultyLevel
 import com.mindforge.game.memorymatrix.engine.MemoryMatrixEngine
 import com.mindforge.game.memorymatrix.model.CellPosition
 import com.mindforge.game.memorymatrix.model.MemoryMatrixEvent
@@ -27,7 +27,7 @@ class MemoryMatrixViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<MemoryMatrixUiState>(MemoryMatrixUiState.Loading)
     val uiState: StateFlow<MemoryMatrixUiState> = _uiState.asStateFlow()
 
-    fun initializeGame(difficulty: DifficultyLevel = DifficultyLevel.EASY) {
+    fun initializeGame(difficulty: DifficultyLevel = DifficultyLevel.BEGINNER) {
         engine = MemoryMatrixEngine(
             initialDifficulty = difficulty,
             coroutineScope = viewModelScope

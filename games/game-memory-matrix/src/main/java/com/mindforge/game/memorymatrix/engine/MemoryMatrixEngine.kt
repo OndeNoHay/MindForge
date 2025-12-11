@@ -1,6 +1,6 @@
 package com.mindforge.game.memorymatrix.engine
 
-import com.mindforge.game.core.difficulty.DifficultyLevel
+import com.mindforge.core.domain.model.DifficultyLevel
 import com.mindforge.game.core.engine.BaseGameEngine
 import com.mindforge.game.core.engine.GamePhase
 import com.mindforge.game.core.scoring.ScoringSystem
@@ -22,7 +22,7 @@ import kotlin.random.Random
  * Handles game logic, pattern generation, and scoring
  */
 class MemoryMatrixEngine(
-    private val initialDifficulty: DifficultyLevel = DifficultyLevel.EASY,
+    private val initialDifficulty: DifficultyLevel = DifficultyLevel.BEGINNER,
     private val coroutineScope: CoroutineScope,
     private val scoringSystem: ScoringSystem = ScoringSystem()
 ) : BaseGameEngine<MemoryMatrixState, MemoryMatrixEvent, MemoryMatrixResult>() {
@@ -44,7 +44,7 @@ class MemoryMatrixEngine(
     private var gameStartTime: Long = 0
     private val roundResponseTimes = mutableListOf<Long>()
 
-    override fun processEvent(event: MemoryMatrixEvent) {
+    override fun onProcessEvent(event: MemoryMatrixEvent) {
         when (event) {
             is MemoryMatrixEvent.StartGame -> handleStartGame()
             is MemoryMatrixEvent.StartRound -> handleStartRound()
@@ -52,37 +52,37 @@ class MemoryMatrixEngine(
             is MemoryMatrixEvent.CellSelected -> handleCellSelected(event.position)
             is MemoryMatrixEvent.SubmitSelections -> handleSubmitSelections()
             is MemoryMatrixEvent.NextRound -> handleNextRound()
-            is MemoryMatrixEvent.PauseGame -> handlePause()
-            is MemoryMatrixEvent.ResumeGame -> handleResume()
-            is MemoryMatrixEvent.FinishGame -> handleFinish()
+            is MemoryMatrixEvent.PauseGame -> handlePauseInternal()
+            is MemoryMatrixEvent.ResumeGame -> handleResumeInternal()
+            is MemoryMatrixEvent.FinishGame -> handleFinishInternal()
         }
     }
 
-    override fun start() {
-        processEvent(MemoryMatrixEvent.StartGame)
+    override fun onStart() {
+        handleStartGame()
     }
 
-    override fun pause() {
-        processEvent(MemoryMatrixEvent.PauseGame)
+    override fun onPause() {
+        handlePauseInternal()
     }
 
-    override fun resume() {
-        processEvent(MemoryMatrixEvent.ResumeGame)
+    override fun onResume() {
+        handleResumeInternal()
     }
 
-    override fun finish(): MemoryMatrixResult {
+    override fun onFinish(): MemoryMatrixResult {
         val state = _state.value
         val totalTime = System.currentTimeMillis() - gameStartTime
         val totalAttempts = state.correctSelections + state.incorrectSelections
         val accuracy = if (totalAttempts > 0) {
-            state.correctSelections.toFloat() / totalAttempts
+            state.correctSelections.toFloat() / totalAttempts.toFloat()
         } else 0f
 
         val xp = scoringSystem.calculateSessionXP(
             totalScore = state.score,
             accuracy = accuracy,
-            timeSpentMs = totalTime,
-            difficulty = state.difficulty
+            difficulty = state.difficulty,
+            timeTaken = totalTime
         )
 
         val avgResponseTime = if (roundResponseTimes.isNotEmpty()) {
@@ -100,6 +100,18 @@ class MemoryMatrixEngine(
             incorrectSelections = state.incorrectSelections,
             averageResponseTime = avgResponseTime,
             perfectRounds = calculatePerfectRounds()
+        )
+    }
+
+    override fun onRestart() {
+        gameStartTime = 0
+        roundResponseTimes.clear()
+        val params = MemoryMatrixParameters.forDifficulty(initialDifficulty)
+        _state.value = MemoryMatrixState(
+            difficulty = initialDifficulty,
+            gridSize = params.gridSize,
+            displayTimeMs = params.displayTimeMs,
+            totalRounds = params.roundsCount
         )
     }
 
@@ -187,9 +199,9 @@ class MemoryMatrixEngine(
         val missedCells = state.targetCells.subtract(state.selectedCells).size
 
         // Calculate score for this round
-        val roundScore = scoringSystem.calculateScore(
+        val roundScore = scoringSystem.calculateAnswerScore(
             isCorrect = missedCells == 0 && incorrectInThisRound == 0,
-            responseTimeMs = responseTime,
+            responseTime = responseTime,
             difficulty = state.difficulty,
             currentStreak = if (missedCells == 0 && incorrectInThisRound == 0) 1 else 0
         )
@@ -209,15 +221,15 @@ class MemoryMatrixEngine(
         processEvent(MemoryMatrixEvent.StartRound)
     }
 
-    private fun handlePause() {
+    private fun handlePauseInternal() {
         _state.value = _state.value.copy(phase = GamePhase.PAUSED)
     }
 
-    private fun handleResume() {
+    private fun handleResumeInternal() {
         _state.value = _state.value.copy(phase = GamePhase.PLAYING)
     }
 
-    private fun handleFinish() {
+    private fun handleFinishInternal() {
         _state.value = _state.value.copy(phase = GamePhase.COMPLETED)
     }
 
@@ -237,9 +249,9 @@ class MemoryMatrixEngine(
         // This would need to track perfect rounds during gameplay
         // For now, estimate based on score
         val state = _state.value
-        val maxPossibleScore = scoringSystem.BASE_SCORE_CORRECT * state.totalRounds
+        val maxPossibleScore = ScoringSystem.BASE_SCORE_CORRECT * state.totalRounds
         return if (maxPossibleScore > 0) {
-            ((state.score.toFloat() / maxPossibleScore) * state.totalRounds).toInt()
+            ((state.score.toFloat() / maxPossibleScore.toFloat()) * state.totalRounds.toFloat()).toInt()
         } else 0
     }
 }

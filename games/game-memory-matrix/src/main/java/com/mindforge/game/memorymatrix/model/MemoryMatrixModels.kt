@@ -1,10 +1,10 @@
 package com.mindforge.game.memorymatrix.model
 
+import com.mindforge.core.domain.model.DifficultyLevel
 import com.mindforge.game.core.engine.GameEvent
 import com.mindforge.game.core.engine.GameResult
 import com.mindforge.game.core.engine.GameState
 import com.mindforge.game.core.engine.GamePhase
-import com.mindforge.game.core.difficulty.DifficultyLevel
 
 /**
  * State of the Memory Matrix game
@@ -13,7 +13,7 @@ data class MemoryMatrixState(
     override val phase: GamePhase = GamePhase.READY,
     override val score: Int = 0,
     override val timeRemaining: Long? = null,
-    override val difficulty: DifficultyLevel = DifficultyLevel.EASY,
+    override val difficulty: DifficultyLevel = DifficultyLevel.BEGINNER,
 
     // Memory Matrix specific state
     val gridSize: Int = 3,
@@ -88,9 +88,14 @@ data class MemoryMatrixParameters(
          */
         fun forDifficulty(level: DifficultyLevel): MemoryMatrixParameters {
             return when (level) {
-                DifficultyLevel.EASY -> MemoryMatrixParameters(
+                DifficultyLevel.BEGINNER -> MemoryMatrixParameters(
                     gridSize = 3,
                     targetCount = 3,
+                    displayTimeMs = 3000
+                )
+                DifficultyLevel.EASY -> MemoryMatrixParameters(
+                    gridSize = 3,
+                    targetCount = 4,
                     displayTimeMs = 3000
                 )
                 DifficultyLevel.MEDIUM -> MemoryMatrixParameters(
@@ -107,6 +112,31 @@ data class MemoryMatrixParameters(
                     gridSize = 6,
                     targetCount = 9,
                     displayTimeMs = 1500
+                )
+                DifficultyLevel.MASTER -> MemoryMatrixParameters(
+                    gridSize = 6,
+                    targetCount = 10,
+                    displayTimeMs = 1500
+                )
+                DifficultyLevel.GRANDMASTER -> MemoryMatrixParameters(
+                    gridSize = 7,
+                    targetCount = 12,
+                    displayTimeMs = 1200
+                )
+                DifficultyLevel.LEGENDARY -> MemoryMatrixParameters(
+                    gridSize = 7,
+                    targetCount = 14,
+                    displayTimeMs = 1200
+                )
+                DifficultyLevel.MYTHIC -> MemoryMatrixParameters(
+                    gridSize = 8,
+                    targetCount = 16,
+                    displayTimeMs = 1000
+                )
+                DifficultyLevel.DIVINE -> MemoryMatrixParameters(
+                    gridSize = 8,
+                    targetCount = 18,
+                    displayTimeMs = 1000
                 )
             }
         }

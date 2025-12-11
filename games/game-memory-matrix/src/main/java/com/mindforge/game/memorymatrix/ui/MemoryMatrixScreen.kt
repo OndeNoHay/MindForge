@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.mindforge.game.core.difficulty.DifficultyLevel
+import com.mindforge.core.domain.model.DifficultyLevel
 import com.mindforge.game.core.engine.GamePhase
 import com.mindforge.game.memorymatrix.model.CellPosition
 import com.mindforge.game.memorymatrix.model.MemoryMatrixState
@@ -33,7 +33,7 @@ import com.mindforge.game.memorymatrix.model.MemoryMatrixState
 @Composable
 fun MemoryMatrixScreen(
     viewModel: MemoryMatrixViewModel = hiltViewModel(),
-    difficulty: DifficultyLevel = DifficultyLevel.EASY,
+    difficulty: DifficultyLevel = DifficultyLevel.BEGINNER,
     onNavigateBack: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
