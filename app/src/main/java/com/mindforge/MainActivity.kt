@@ -21,6 +21,7 @@ import com.mindforge.game.taskprioritizer.ui.TaskPrioritizerScreen
 import com.mindforge.game.nameface.ui.NameFaceScreen
 import com.mindforge.game.meetingrecall.ui.MeetingRecallScreen
 import com.mindforge.game.conceptlinker.ui.ConceptLinkerScreen
+import com.mindforge.game.spacedreview.ui.SpacedReviewScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -67,6 +68,9 @@ fun MindForgeNavigation() {
                         }
                         GameType.CONCEPT_LINKER -> {
                             navController.navigate(Screen.ConceptLinker.route)
+                        }
+                        GameType.SPACED_REVIEW -> {
+                            navController.navigate(Screen.SpacedReview.route)
                         }
                         else -> {
                             // Other games not implemented yet
@@ -120,6 +124,15 @@ fun MindForgeNavigation() {
                 }
             )
         }
+
+        composable(Screen.SpacedReview.route) {
+            SpacedReviewScreen(
+                difficulty = DifficultyLevel.BEGINNER,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
 
@@ -133,4 +146,5 @@ sealed class Screen(val route: String) {
     object NameFace : Screen("name_face")
     object MeetingRecall : Screen("meeting_recall")
     object ConceptLinker : Screen("concept_linker")
+    object SpacedReview : Screen("spaced_review")
 }
