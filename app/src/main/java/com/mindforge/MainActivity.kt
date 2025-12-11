@@ -62,7 +62,7 @@ fun MindForgeNavigation() {
 
         composable(Screen.MemoryMatrix.route) {
             MemoryMatrixScreen(
-                difficulty = DifficultyLevel.EASY,
+                difficulty = DifficultyLevel.BEGINNER,
                 onNavigateBack = {
                     navController.popBackStack()
                 }

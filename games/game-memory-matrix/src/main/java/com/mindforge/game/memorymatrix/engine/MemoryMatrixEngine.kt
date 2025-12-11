@@ -30,6 +30,7 @@ class MemoryMatrixEngine(
     private val _state = MutableStateFlow(
         MemoryMatrixParameters.forDifficulty(initialDifficulty).let { params ->
             MemoryMatrixState(
+                phase = GamePhase.READY,
                 difficulty = initialDifficulty,
                 gridSize = params.gridSize,
                 displayTimeMs = params.displayTimeMs,

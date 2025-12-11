@@ -55,26 +55,37 @@ class MemoryMatrixViewModel @Inject constructor(
     }
 
     fun onCellTapped(position: CellPosition) {
-        engine.processEvent(MemoryMatrixEvent.CellSelected(position))
+        if (::engine.isInitialized) {
+            engine.processEvent(MemoryMatrixEvent.CellSelected(position))
+        }
     }
 
     fun onSubmitSelections() {
-        engine.processEvent(MemoryMatrixEvent.SubmitSelections)
+        if (::engine.isInitialized) {
+            engine.processEvent(MemoryMatrixEvent.SubmitSelections)
+        }
     }
 
     fun onNextRound() {
-        engine.processEvent(MemoryMatrixEvent.NextRound)
+        if (::engine.isInitialized) {
+            engine.processEvent(MemoryMatrixEvent.NextRound)
+        }
     }
 
     fun onPause() {
-        engine.pause()
+        if (::engine.isInitialized) {
+            engine.pause()
+        }
     }
 
     fun onResume() {
-        engine.resume()
+        if (::engine.isInitialized) {
+            engine.resume()
+        }
     }
 
     fun onFinishGame() {
+        if (!::engine.isInitialized) return
         val result = engine.finish()
         _uiState.value = MemoryMatrixUiState.Finished(result)
 
