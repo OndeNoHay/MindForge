@@ -3,7 +3,7 @@ package com.mindforge.game.nameface.engine
 import com.mindforge.core.domain.model.DifficultyLevel
 import com.mindforge.game.core.engine.BaseGameEngine
 import com.mindforge.game.core.engine.GamePhase
-import com.mindforge.game.core.engine.ScoringSystem
+import com.mindforge.game.core.scoring.ScoringSystem
 import com.mindforge.game.nameface.model.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -24,7 +24,7 @@ class NameFaceEngine(
 ) : BaseGameEngine<NameFaceState, NameFaceEvent, NameFaceResult>() {
 
     private val _state = MutableStateFlow(NameFaceState(difficulty = initialDifficulty))
-    override val state: StateFlow<NameFaceState> = _state.asStateFlow()
+    override val currentState: StateFlow<NameFaceState> = _state.asStateFlow()
 
     private val personGenerator = PersonGenerator()
     private var studyTimerJob: Job? = null
@@ -32,7 +32,7 @@ class NameFaceEngine(
     private val perfectRounds = mutableListOf<Boolean>()
     private val studyTimes = mutableListOf<Long>()
 
-    override suspend fun handleEvent(event: NameFaceEvent) {
+    override fun onProcessEvent(event: NameFaceEvent) {
         when (event) {
             is NameFaceEvent.StartGame -> startGame()
             is NameFaceEvent.StartRound -> startRound()
@@ -46,6 +46,30 @@ class NameFaceEngine(
             is NameFaceEvent.ResumeGame -> resumeGame()
             is NameFaceEvent.FinishGame -> finishGame()
         }
+    }
+
+    override fun onStart() {
+        startGame()
+    }
+
+    override fun onPause() {
+        pauseGame()
+    }
+
+    override fun onResume() {
+        resumeGame()
+    }
+
+    override fun onFinish(): NameFaceResult {
+        return finishGameInternal()
+    }
+
+    override fun onRestart() {
+        studyTimerJob?.cancel()
+        personGenerator.reset()
+        perfectRounds.clear()
+        studyTimes.clear()
+        _state.value = NameFaceState(difficulty = initialDifficulty)
     }
 
     private fun startGame() {
@@ -100,7 +124,7 @@ class NameFaceEngine(
                 nextPerson()
             } else {
                 // Study phase complete, move to test
-                handleEvent(NameFaceEvent.StartTest)
+                processEvent(NameFaceEvent.StartTest)
             }
         }
     }
@@ -195,16 +219,12 @@ class NameFaceEngine(
         val newIncorrectAnswers = if (!isCorrect) _state.value.incorrectAnswers + 1 else _state.value.incorrectAnswers
 
         // Calculate score
-        val pointsForAnswer = if (isCorrect) {
-            scoringSystem.calculateScore(
-                baseScore = 100,
-                difficulty = _state.value.difficulty,
-                accuracy = 1.0f,
-                timeBonus = 0
-            )
-        } else {
-            0
-        }
+        val pointsForAnswer = scoringSystem.calculateAnswerScore(
+            isCorrect = isCorrect,
+            responseTime = 0L,
+            difficulty = _state.value.difficulty,
+            currentStreak = if (isCorrect) 1 else 0
+        )
 
         _state.value = _state.value.copy(
             answeredQuestions = newAnsweredQuestions,
@@ -260,15 +280,20 @@ class NameFaceEngine(
     }
 
     private fun finishGame() {
+        _state.value = _state.value.copy(phase = GamePhase.COMPLETED)
+    }
+
+    private fun finishGameInternal(): NameFaceResult {
         studyTimerJob?.cancel()
 
         val totalTime = System.currentTimeMillis() - gameStartTime
         val accuracy = _state.value.accuracy
 
-        val xpEarned = scoringSystem.calculateXP(
-            score = _state.value.score,
+        val xpEarned = scoringSystem.calculateSessionXP(
+            totalScore = _state.value.score,
+            accuracy = accuracy,
             difficulty = _state.value.difficulty,
-            accuracy = accuracy
+            timeTaken = totalTime
         )
 
         val result = NameFaceResult(
@@ -277,7 +302,7 @@ class NameFaceEngine(
             timeTaken = totalTime,
             difficulty = _state.value.difficulty,
             xpEarned = xpEarned,
-            passed = accuracy >= 0.6f, // 60% to pass
+            passed = scoringSystem.hasPassed(accuracy),
             totalRounds = _state.value.totalRounds,
             totalPeople = _state.value.peopleToLearn.size * _state.value.totalRounds,
             correctAnswers = _state.value.correctAnswers,
@@ -287,17 +312,9 @@ class NameFaceEngine(
         )
 
         _state.value = _state.value.copy(
-            phase = GamePhase.FINISHED
+            phase = GamePhase.COMPLETED
         )
 
-        emitResult(result)
-    }
-
-    override fun reset() {
-        studyTimerJob?.cancel()
-        personGenerator.reset()
-        perfectRounds.clear()
-        studyTimes.clear()
-        _state.value = NameFaceState(difficulty = initialDifficulty)
+        return result
     }
 }

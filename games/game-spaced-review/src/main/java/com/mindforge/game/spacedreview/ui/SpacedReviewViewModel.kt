@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mindforge.core.domain.model.DifficultyLevel
 import com.mindforge.core.domain.model.GameType
-import com.mindforge.game.core.engine.ScoringSystem
+import com.mindforge.game.core.scoring.ScoringSystem
 import com.mindforge.game.spacedreview.engine.SpacedReviewEngine
 import com.mindforge.game.spacedreview.model.SpacedReviewEvent
 import com.mindforge.game.spacedreview.model.SpacedReviewResult
@@ -26,85 +26,87 @@ class SpacedReviewViewModel @Inject constructor(
     private val initializeUserUseCase: com.mindforge.core.domain.usecase.InitializeUserUseCase
 ) : ViewModel() {
 
-    private var engine: SpacedReviewEngine? = null
+    private lateinit var engine: SpacedReviewEngine
+    private var currentUserId: String? = null
 
-    private val _uiState = MutableStateFlow<SpacedReviewState?>(null)
-    val uiState: StateFlow<SpacedReviewState?> = _uiState.asStateFlow()
-
-    private val _gameResult = MutableStateFlow<SpacedReviewResult?>(null)
-    val gameResult: StateFlow<SpacedReviewResult?> = _gameResult.asStateFlow()
+    private val _uiState = MutableStateFlow<SpacedReviewUiState>(SpacedReviewUiState.Loading)
+    val uiState: StateFlow<SpacedReviewUiState> = _uiState.asStateFlow()
 
     fun initializeGame(difficulty: DifficultyLevel) {
+        engine = SpacedReviewEngine(
+            initialDifficulty = difficulty,
+            coroutineScope = viewModelScope,
+            scoringSystem = ScoringSystem(),
+            existingItems = emptyList()  // TODO: Load from database
+        )
+
+        // Initialize user
         viewModelScope.launch {
-            // Ensure user exists
-            initializeUserUseCase()
+            val user = initializeUserUseCase()
+            currentUserId = user.id
+        }
 
-            // Create engine
-            engine = SpacedReviewEngine(
-                initialDifficulty = difficulty,
-                coroutineScope = viewModelScope,
-                scoringSystem = ScoringSystem(),
-                existingItems = emptyList()  // TODO: Load from database
-            )
-
-            // Observe state
-            engine?.state?.collect { state ->
-                _uiState.value = state
+        // Observe engine state
+        viewModelScope.launch {
+            engine.currentState.collect { gameState ->
+                _uiState.value = SpacedReviewUiState.Playing(gameState)
             }
         }
 
-        // Observe results
-        viewModelScope.launch {
-            engine?.results?.collect { result ->
-                _gameResult.value = result
-                saveGameSession(result)
-            }
-        }
+        // Start the game
+        engine.start()
     }
 
     fun handleEvent(event: SpacedReviewEvent) {
-        viewModelScope.launch {
-            engine?.handleEvent(event)
+        if (::engine.isInitialized) {
+            engine.processEvent(event)
         }
     }
 
-    private suspend fun saveGameSession(result: SpacedReviewResult) {
-        try {
-            val session = com.mindforge.core.domain.model.GameSession(
-                id = 0, // Auto-generated
-                gameType = GameType.SPACED_REVIEW,
-                difficulty = result.difficulty,
-                score = result.score,
-                accuracy = result.accuracy,
-                xpEarned = result.xpEarned,
-                timeTaken = result.timeTaken,
-                completed = true,
-                timestamp = System.currentTimeMillis()
-            )
+    fun onFinishGame() {
+        if (!::engine.isInitialized) return
+        val result = engine.finish()
+        _uiState.value = SpacedReviewUiState.Finished(result)
 
-            gameSessionRepository.insertSession(session)
-
-            // Update user XP
-            val currentUser = userRepository.getCurrentUser()
-            currentUser?.let { user ->
-                userRepository.updateUser(
-                    user.copy(
-                        totalXP = user.totalXP + result.xpEarned,
-                        gamesPlayed = user.gamesPlayed + 1
-                    )
+        // Save the session and update user XP
+        viewModelScope.launch {
+            currentUserId?.let { userId ->
+                // Save game session
+                val endTime = System.currentTimeMillis()
+                val session = com.mindforge.core.domain.model.GameSession(
+                    id = java.util.UUID.randomUUID().toString(),
+                    gameType = GameType.SPACED_REVIEW,
+                    startTime = endTime - result.timeTaken,
+                    endTime = endTime,
+                    score = result.score,
+                    accuracy = result.accuracy,
+                    difficultyLevel = result.difficulty,
+                    xpEarned = result.xpEarned
                 )
+                gameSessionRepository.saveSession(session)
+
+                // Update user XP
+                userRepository.updateXP(userId, result.xpEarned)
+
+                // TODO: Save updated review items to database
+                // engine.getUpdatedItems()
             }
-
-            // TODO: Save updated review items to database
-            // engine?.getUpdatedItems()
-
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 
     override fun onCleared() {
         super.onCleared()
-        engine?.reset()
+        if (::engine.isInitialized) {
+            engine.finish()
+        }
     }
+}
+
+/**
+ * UI state for the Spaced Review screen
+ */
+sealed class SpacedReviewUiState {
+    object Loading : SpacedReviewUiState()
+    data class Playing(val gameState: SpacedReviewState) : SpacedReviewUiState()
+    data class Finished(val result: SpacedReviewResult) : SpacedReviewUiState()
 }

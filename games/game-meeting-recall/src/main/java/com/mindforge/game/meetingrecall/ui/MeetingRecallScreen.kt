@@ -38,11 +38,9 @@ fun MeetingRecallScreen(
     viewModel: MeetingRecallViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val gameResult by viewModel.gameResult.collectAsState()
 
     LaunchedEffect(difficulty) {
         viewModel.initializeGame(difficulty)
-        viewModel.handleEvent(MeetingRecallEvent.StartGame)
     }
 
     Scaffold(
@@ -65,29 +63,30 @@ fun MeetingRecallScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            when {
-                uiState == null -> {
+            when (val state = uiState) {
+                is MeetingRecallUiState.Loading -> {
                     LoadingScreen()
                 }
-                uiState?.phase == GamePhase.FINISHED && gameResult != null -> {
+                is MeetingRecallUiState.Finished -> {
                     ResultsScreen(
-                        result = gameResult!!,
+                        result = state.result,
                         onNavigateBack = onNavigateBack
                     )
                 }
-                uiState != null -> {
-                    when (uiState!!.meetingRecallPhase) {
+                is MeetingRecallUiState.Playing -> {
+                    when (state.gameState.meetingRecallPhase) {
                         MeetingRecallPhase.READING -> ReadingPhaseScreen(
-                            state = uiState!!,
+                            state = state.gameState,
                             onEvent = viewModel::handleEvent
                         )
                         MeetingRecallPhase.TEST -> TestPhaseScreen(
-                            state = uiState!!,
+                            state = state.gameState,
                             onEvent = viewModel::handleEvent
                         )
                         MeetingRecallPhase.REVIEW -> ReviewPhaseScreen(
-                            state = uiState!!,
-                            onEvent = viewModel::handleEvent
+                            state = state.gameState,
+                            onEvent = viewModel::handleEvent,
+                            onFinish = viewModel::onFinishGame
                         )
                     }
                 }
@@ -591,7 +590,8 @@ private fun OptionCard(
 @Composable
 private fun ReviewPhaseScreen(
     state: MeetingRecallState,
-    onEvent: (MeetingRecallEvent) -> Unit
+    onEvent: (MeetingRecallEvent) -> Unit,
+    onFinish: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -652,7 +652,7 @@ private fun ReviewPhaseScreen(
                 if (state.currentRound < state.totalRounds) {
                     onEvent(MeetingRecallEvent.NextRound)
                 } else {
-                    onEvent(MeetingRecallEvent.FinishGame)
+                    onFinish()
                 }
             },
             modifier = Modifier.fillMaxWidth()

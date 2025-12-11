@@ -3,7 +3,7 @@ package com.mindforge.game.conceptlinker.engine
 import com.mindforge.core.domain.model.DifficultyLevel
 import com.mindforge.game.core.engine.BaseGameEngine
 import com.mindforge.game.core.engine.GamePhase
-import com.mindforge.game.core.engine.ScoringSystem
+import com.mindforge.game.core.scoring.ScoringSystem
 import com.mindforge.game.conceptlinker.model.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -24,7 +24,7 @@ class ConceptLinkerEngine(
 ) : BaseGameEngine<ConceptLinkerState, ConceptLinkerEvent, ConceptLinkerResult>() {
 
     private val _state = MutableStateFlow(ConceptLinkerState(difficulty = initialDifficulty))
-    override val state: StateFlow<ConceptLinkerState> = _state.asStateFlow()
+    override val currentState: StateFlow<ConceptLinkerState> = _state.asStateFlow()
 
     private val conceptGenerator = ConceptGenerator()
     private var studyTimerJob: Job? = null
@@ -32,7 +32,7 @@ class ConceptLinkerEngine(
     private val perfectRounds = mutableListOf<Boolean>()
     private var connectionIdCounter = 0
 
-    override suspend fun handleEvent(event: ConceptLinkerEvent) {
+    override fun onProcessEvent(event: ConceptLinkerEvent) {
         when (event) {
             is ConceptLinkerEvent.StartGame -> startGame()
             is ConceptLinkerEvent.StartRound -> startRound()
@@ -48,6 +48,30 @@ class ConceptLinkerEngine(
             is ConceptLinkerEvent.ResumeGame -> resumeGame()
             is ConceptLinkerEvent.FinishGame -> finishGame()
         }
+    }
+
+    override fun onStart() {
+        startGame()
+    }
+
+    override fun onPause() {
+        pauseGame()
+    }
+
+    override fun onResume() {
+        resumeGame()
+    }
+
+    override fun onFinish(): ConceptLinkerResult {
+        return finishGameInternal()
+    }
+
+    override fun onRestart() {
+        studyTimerJob?.cancel()
+        conceptGenerator.reset()
+        perfectRounds.clear()
+        connectionIdCounter = 0
+        _state.value = ConceptLinkerState(difficulty = initialDifficulty)
     }
 
     private fun startGame() {
@@ -246,14 +270,16 @@ class ConceptLinkerEngine(
         // Calculate score for round
         val pointsPerCorrectConnection = 100
         val penaltyPerIncorrect = 20
-        val roundScore = (correctCount * pointsPerCorrectConnection - incorrectCount * penaltyPerIncorrect).coerceAtLeast(0)
+        val baseRoundScore = (correctCount * pointsPerCorrectConnection - incorrectCount * penaltyPerIncorrect).coerceAtLeast(0)
 
-        val scoredPoints = scoringSystem.calculateScore(
-            baseScore = roundScore,
-            difficulty = _state.value.difficulty,
-            accuracy = if (correctCount + incorrectCount > 0) correctCount.toFloat() / (correctCount + incorrectCount).toFloat() else 0f,
-            timeBonus = 0
-        )
+        // Apply difficulty multiplier
+        val difficultyMultiplier = when (_state.value.difficulty) {
+            DifficultyLevel.BEGINNER -> 1.0f
+            DifficultyLevel.INTERMEDIATE -> 1.5f
+            DifficultyLevel.ADVANCED -> 2.0f
+            DifficultyLevel.EXPERT -> 2.5f
+        }
+        val scoredPoints = (baseRoundScore * difficultyMultiplier).toInt()
 
         val isPerfectRound = incorrectCount == 0 && missedCount == 0
         perfectRounds.add(isPerfectRound)
@@ -292,6 +318,10 @@ class ConceptLinkerEngine(
     }
 
     private fun finishGame() {
+        _state.value = _state.value.copy(phase = GamePhase.COMPLETED)
+    }
+
+    private fun finishGameInternal(): ConceptLinkerResult {
         studyTimerJob?.cancel()
 
         val totalTime = System.currentTimeMillis() - gameStartTime
@@ -309,10 +339,11 @@ class ConceptLinkerEngine(
             0f
         }
 
-        val xpEarned = scoringSystem.calculateXP(
-            score = _state.value.score,
+        val xpEarned = scoringSystem.calculateSessionXP(
+            totalScore = _state.value.score,
+            accuracy = accuracy,
             difficulty = _state.value.difficulty,
-            accuracy = accuracy
+            timeTaken = totalTime
         )
 
         val result = ConceptLinkerResult(
@@ -321,7 +352,7 @@ class ConceptLinkerEngine(
             timeTaken = totalTime,
             difficulty = _state.value.difficulty,
             xpEarned = xpEarned,
-            passed = accuracy >= 0.6f && completionRate >= 0.5f,  // 60% accuracy and 50% completion
+            passed = scoringSystem.hasPassed(accuracy) && completionRate >= 0.5f,
             totalRounds = _state.value.totalRounds,
             totalPossibleConnections = totalPossibleConnections,
             correctConnectionsCount = _state.value.correctConnectionsCount,
@@ -332,17 +363,9 @@ class ConceptLinkerEngine(
         )
 
         _state.value = _state.value.copy(
-            phase = GamePhase.FINISHED
+            phase = GamePhase.COMPLETED
         )
 
-        emitResult(result)
-    }
-
-    override fun reset() {
-        studyTimerJob?.cancel()
-        conceptGenerator.reset()
-        perfectRounds.clear()
-        connectionIdCounter = 0
-        _state.value = ConceptLinkerState(difficulty = initialDifficulty)
+        return result
     }
 }

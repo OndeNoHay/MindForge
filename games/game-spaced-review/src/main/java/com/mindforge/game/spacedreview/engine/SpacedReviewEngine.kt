@@ -3,7 +3,7 @@ package com.mindforge.game.spacedreview.engine
 import com.mindforge.core.domain.model.DifficultyLevel
 import com.mindforge.game.core.engine.BaseGameEngine
 import com.mindforge.game.core.engine.GamePhase
-import com.mindforge.game.core.engine.ScoringSystem
+import com.mindforge.game.core.scoring.ScoringSystem
 import com.mindforge.game.spacedreview.model.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,13 +22,13 @@ class SpacedReviewEngine(
 ) : BaseGameEngine<SpacedReviewState, SpacedReviewEvent, SpacedReviewResult>() {
 
     private val _state = MutableStateFlow(SpacedReviewState(difficulty = initialDifficulty))
-    override val state: StateFlow<SpacedReviewState> = _state.asStateFlow()
+    override val currentState: StateFlow<SpacedReviewState> = _state.asStateFlow()
 
     private val reviewItemGenerator = ReviewItemGenerator()
     private var gameStartTime: Long = 0
     private val updatedItems = mutableMapOf<String, ReviewItem>()  // Store updated items
 
-    override suspend fun handleEvent(event: SpacedReviewEvent) {
+    override fun onProcessEvent(event: SpacedReviewEvent) {
         when (event) {
             is SpacedReviewEvent.StartSession -> startSession()
             is SpacedReviewEvent.ShowAnswer -> showAnswer()
@@ -38,6 +38,28 @@ class SpacedReviewEngine(
             is SpacedReviewEvent.PauseGame -> pauseGame()
             is SpacedReviewEvent.ResumeGame -> resumeGame()
         }
+    }
+
+    override fun onStart() {
+        startSession()
+    }
+
+    override fun onPause() {
+        pauseGame()
+    }
+
+    override fun onResume() {
+        resumeGame()
+    }
+
+    override fun onFinish(): SpacedReviewResult {
+        return finishSessionInternal()
+    }
+
+    override fun onRestart() {
+        reviewItemGenerator.reset()
+        updatedItems.clear()
+        _state.value = SpacedReviewState(difficulty = initialDifficulty)
     }
 
     private fun startSession() {
@@ -107,12 +129,14 @@ class SpacedReviewEngine(
             RecallQuality.COMPLETE_BLACKOUT -> 0
         }
 
-        val scoredPoints = scoringSystem.calculateScore(
-            baseScore = pointsForQuality,
-            difficulty = _state.value.difficulty,
-            accuracy = 1.0f,
-            timeBonus = 0
-        )
+        // Apply difficulty multiplier
+        val difficultyMultiplier = when (_state.value.difficulty) {
+            DifficultyLevel.BEGINNER -> 1.0f
+            DifficultyLevel.INTERMEDIATE -> 1.5f
+            DifficultyLevel.ADVANCED -> 2.0f
+            DifficultyLevel.EXPERT -> 2.5f
+        }
+        val scoredPoints = (pointsForQuality * difficultyMultiplier).toInt()
 
         _state.value = _state.value.copy(
             reviewedItems = _state.value.reviewedItems + (itemId to quality),
@@ -143,13 +167,21 @@ class SpacedReviewEngine(
     }
 
     private fun finishSession() {
+        _state.value = _state.value.copy(
+            phase = GamePhase.COMPLETED,
+            spacedReviewPhase = SpacedReviewPhase.RESULT
+        )
+    }
+
+    private fun finishSessionInternal(): SpacedReviewResult {
         val totalTime = System.currentTimeMillis() - gameStartTime
         val accuracy = _state.value.accuracy
 
-        val xpEarned = scoringSystem.calculateXP(
-            score = _state.value.score,
+        val xpEarned = scoringSystem.calculateSessionXP(
+            totalScore = _state.value.score,
+            accuracy = accuracy,
             difficulty = _state.value.difficulty,
-            accuracy = accuracy
+            timeTaken = totalTime
         )
 
         // Calculate items due soon
@@ -170,7 +202,7 @@ class SpacedReviewEngine(
             timeTaken = totalTime,
             difficulty = _state.value.difficulty,
             xpEarned = xpEarned,
-            passed = accuracy >= 0.6f,  // 60% good recalls to pass
+            passed = scoringSystem.hasPassed(accuracy),
             itemsReviewed = _state.value.totalItemsReviewed,
             perfectRecalls = _state.value.perfectRecalls,
             goodRecalls = _state.value.goodRecalls,
@@ -181,11 +213,11 @@ class SpacedReviewEngine(
         )
 
         _state.value = _state.value.copy(
-            phase = GamePhase.FINISHED,
+            phase = GamePhase.COMPLETED,
             spacedReviewPhase = SpacedReviewPhase.RESULT
         )
 
-        emitResult(result)
+        return result
     }
 
     private fun pauseGame() {
@@ -203,11 +235,5 @@ class SpacedReviewEngine(
         return _state.value.reviewItems.map { item ->
             updatedItems[item.id] ?: item
         }
-    }
-
-    override fun reset() {
-        reviewItemGenerator.reset()
-        updatedItems.clear()
-        _state.value = SpacedReviewState(difficulty = initialDifficulty)
     }
 }

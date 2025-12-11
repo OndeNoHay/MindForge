@@ -3,7 +3,7 @@ package com.mindforge.game.meetingrecall.engine
 import com.mindforge.core.domain.model.DifficultyLevel
 import com.mindforge.game.core.engine.BaseGameEngine
 import com.mindforge.game.core.engine.GamePhase
-import com.mindforge.game.core.engine.ScoringSystem
+import com.mindforge.game.core.scoring.ScoringSystem
 import com.mindforge.game.meetingrecall.model.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -24,7 +24,7 @@ class MeetingRecallEngine(
 ) : BaseGameEngine<MeetingRecallState, MeetingRecallEvent, MeetingRecallResult>() {
 
     private val _state = MutableStateFlow(MeetingRecallState(difficulty = initialDifficulty))
-    override val state: StateFlow<MeetingRecallState> = _state.asStateFlow()
+    override val currentState: StateFlow<MeetingRecallState> = _state.asStateFlow()
 
     private val meetingGenerator = MeetingGenerator()
     private var readingTimerJob: Job? = null
@@ -32,7 +32,7 @@ class MeetingRecallEngine(
     private val perfectRounds = mutableListOf<Boolean>()
     private val readingTimes = mutableListOf<Long>()
 
-    override suspend fun handleEvent(event: MeetingRecallEvent) {
+    override fun onProcessEvent(event: MeetingRecallEvent) {
         when (event) {
             is MeetingRecallEvent.StartGame -> startGame()
             is MeetingRecallEvent.StartRound -> startRound()
@@ -47,6 +47,30 @@ class MeetingRecallEngine(
             is MeetingRecallEvent.ResumeGame -> resumeGame()
             is MeetingRecallEvent.FinishGame -> finishGame()
         }
+    }
+
+    override fun onStart() {
+        startGame()
+    }
+
+    override fun onPause() {
+        pauseGame()
+    }
+
+    override fun onResume() {
+        resumeGame()
+    }
+
+    override fun onFinish(): MeetingRecallResult {
+        return finishGameInternal()
+    }
+
+    override fun onRestart() {
+        readingTimerJob?.cancel()
+        meetingGenerator.reset()
+        perfectRounds.clear()
+        readingTimes.clear()
+        _state.value = MeetingRecallState(difficulty = initialDifficulty)
     }
 
     private fun startGame() {
@@ -305,15 +329,15 @@ class MeetingRecallEngine(
         }
 
         // Calculate score with bonus for detail questions
-        val baseScore = if (isCorrect) 100 else 0
-        val bonusMultiplier = if (currentQuestion.isDetailQuestion && isCorrect) 1.5f else 1f
-
-        val pointsForAnswer = scoringSystem.calculateScore(
-            baseScore = (baseScore * bonusMultiplier).toInt(),
+        val baseScore = scoringSystem.calculateAnswerScore(
+            isCorrect = isCorrect,
+            responseTime = 0L,
             difficulty = _state.value.difficulty,
-            accuracy = 1.0f,
-            timeBonus = 0
+            currentStreak = if (isCorrect) 1 else 0
         )
+
+        val bonusMultiplier = if (currentQuestion.isDetailQuestion && isCorrect) 1.5f else 1f
+        val pointsForAnswer = (baseScore * bonusMultiplier).toInt()
 
         _state.value = _state.value.copy(
             answeredQuestions = newAnsweredQuestions,
@@ -369,15 +393,20 @@ class MeetingRecallEngine(
     }
 
     private fun finishGame() {
+        _state.value = _state.value.copy(phase = GamePhase.COMPLETED)
+    }
+
+    private fun finishGameInternal(): MeetingRecallResult {
         readingTimerJob?.cancel()
 
         val totalTime = System.currentTimeMillis() - gameStartTime
         val accuracy = _state.value.accuracy
 
-        val xpEarned = scoringSystem.calculateXP(
-            score = _state.value.score,
+        val xpEarned = scoringSystem.calculateSessionXP(
+            totalScore = _state.value.score,
+            accuracy = accuracy,
             difficulty = _state.value.difficulty,
-            accuracy = accuracy
+            timeTaken = totalTime
         )
 
         val totalQuestions = _state.value.totalRounds * _state.value.questions.size
@@ -388,7 +417,7 @@ class MeetingRecallEngine(
             timeTaken = totalTime,
             difficulty = _state.value.difficulty,
             xpEarned = xpEarned,
-            passed = accuracy >= 0.6f, // 60% to pass
+            passed = scoringSystem.hasPassed(accuracy),
             totalRounds = _state.value.totalRounds,
             totalQuestions = totalQuestions,
             correctAnswers = _state.value.correctAnswers,
@@ -399,17 +428,9 @@ class MeetingRecallEngine(
         )
 
         _state.value = _state.value.copy(
-            phase = GamePhase.FINISHED
+            phase = GamePhase.COMPLETED
         )
 
-        emitResult(result)
-    }
-
-    override fun reset() {
-        readingTimerJob?.cancel()
-        meetingGenerator.reset()
-        perfectRounds.clear()
-        readingTimes.clear()
-        _state.value = MeetingRecallState(difficulty = initialDifficulty)
+        return result
     }
 }

@@ -37,11 +37,9 @@ fun NameFaceScreen(
     viewModel: NameFaceViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val gameResult by viewModel.gameResult.collectAsState()
 
     LaunchedEffect(difficulty) {
         viewModel.initializeGame(difficulty)
-        viewModel.handleEvent(NameFaceEvent.StartGame)
     }
 
     Scaffold(
@@ -64,29 +62,30 @@ fun NameFaceScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            when {
-                uiState == null -> {
+            when (val state = uiState) {
+                is NameFaceUiState.Loading -> {
                     LoadingScreen()
                 }
-                uiState?.phase == GamePhase.FINISHED && gameResult != null -> {
+                is NameFaceUiState.Finished -> {
                     ResultsScreen(
-                        result = gameResult!!,
+                        result = state.result,
                         onNavigateBack = onNavigateBack
                     )
                 }
-                uiState != null -> {
-                    when (uiState!!.nameFacePhase) {
+                is NameFaceUiState.Playing -> {
+                    when (state.gameState.nameFacePhase) {
                         NameFacePhase.STUDY -> StudyPhaseScreen(
-                            state = uiState!!,
+                            state = state.gameState,
                             onEvent = viewModel::handleEvent
                         )
                         NameFacePhase.TEST -> TestPhaseScreen(
-                            state = uiState!!,
+                            state = state.gameState,
                             onEvent = viewModel::handleEvent
                         )
                         NameFacePhase.REVIEW -> ReviewPhaseScreen(
-                            state = uiState!!,
-                            onEvent = viewModel::handleEvent
+                            state = state.gameState,
+                            onEvent = viewModel::handleEvent,
+                            onFinish = viewModel::onFinishGame
                         )
                     }
                 }
@@ -532,7 +531,8 @@ private fun OptionPersonCard(
 @Composable
 private fun ReviewPhaseScreen(
     state: NameFaceState,
-    onEvent: (NameFaceEvent) -> Unit
+    onEvent: (NameFaceEvent) -> Unit,
+    onFinish: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -590,7 +590,7 @@ private fun ReviewPhaseScreen(
                 if (state.currentRound < state.totalRounds) {
                     onEvent(NameFaceEvent.NextRound)
                 } else {
-                    onEvent(NameFaceEvent.FinishGame)
+                    onFinish()
                 }
             },
             modifier = Modifier.fillMaxWidth()

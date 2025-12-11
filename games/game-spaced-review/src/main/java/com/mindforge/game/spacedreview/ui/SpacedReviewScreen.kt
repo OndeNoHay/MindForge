@@ -29,11 +29,9 @@ fun SpacedReviewScreen(
     viewModel: SpacedReviewViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val gameResult by viewModel.gameResult.collectAsState()
 
     LaunchedEffect(difficulty) {
         viewModel.initializeGame(difficulty)
-        viewModel.handleEvent(SpacedReviewEvent.StartSession)
     }
 
     Scaffold(
@@ -56,24 +54,25 @@ fun SpacedReviewScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            when {
-                uiState == null -> {
+            when (val state = uiState) {
+                is SpacedReviewUiState.Loading -> {
                     LoadingScreen()
                 }
-                uiState?.phase == GamePhase.FINISHED && gameResult != null -> {
+                is SpacedReviewUiState.Finished -> {
                     ResultsScreen(
-                        result = gameResult!!,
+                        result = state.result,
                         onNavigateBack = onNavigateBack
                     )
                 }
-                uiState != null -> {
-                    when (uiState!!.spacedReviewPhase) {
+                is SpacedReviewUiState.Playing -> {
+                    when (state.gameState.spacedReviewPhase) {
                         SpacedReviewPhase.REVIEW -> ReviewScreen(
-                            state = uiState!!,
-                            onEvent = viewModel::handleEvent
+                            state = state.gameState,
+                            onEvent = viewModel::handleEvent,
+                            onFinish = viewModel::onFinishGame
                         )
                         SpacedReviewPhase.RESULT -> {
-                            // Results handled above
+                            // Results handled in Finished state
                         }
                     }
                 }
@@ -95,7 +94,8 @@ private fun LoadingScreen() {
 @Composable
 private fun ReviewScreen(
     state: SpacedReviewState,
-    onEvent: (SpacedReviewEvent) -> Unit
+    onEvent: (SpacedReviewEvent) -> Unit,
+    onFinish: () -> Unit
 ) {
     val currentItem = state.currentItem
 
@@ -107,7 +107,7 @@ private fun ReviewScreen(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("No hay items para revisar hoy")
                 Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = { onEvent(SpacedReviewEvent.FinishSession) }) {
+                Button(onClick = { onFinish() }) {
                     Text("Finalizar")
                 }
             }

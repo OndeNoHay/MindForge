@@ -37,11 +37,9 @@ fun ConceptLinkerScreen(
     viewModel: ConceptLinkerViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val gameResult by viewModel.gameResult.collectAsState()
 
     LaunchedEffect(difficulty) {
         viewModel.initializeGame(difficulty)
-        viewModel.handleEvent(ConceptLinkerEvent.StartGame)
     }
 
     Scaffold(
@@ -64,29 +62,30 @@ fun ConceptLinkerScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            when {
-                uiState == null -> {
+            when (val state = uiState) {
+                is ConceptLinkerUiState.Loading -> {
                     LoadingScreen()
                 }
-                uiState?.phase == GamePhase.FINISHED && gameResult != null -> {
+                is ConceptLinkerUiState.Finished -> {
                     ResultsScreen(
-                        result = gameResult!!,
+                        result = state.result,
                         onNavigateBack = onNavigateBack
                     )
                 }
-                uiState != null -> {
-                    when (uiState!!.conceptLinkerPhase) {
+                is ConceptLinkerUiState.Playing -> {
+                    when (state.gameState.conceptLinkerPhase) {
                         ConceptLinkerPhase.STUDY -> StudyPhaseScreen(
-                            state = uiState!!,
+                            state = state.gameState,
                             onEvent = viewModel::handleEvent
                         )
                         ConceptLinkerPhase.CONNECTING -> ConnectingPhaseScreen(
-                            state = uiState!!,
+                            state = state.gameState,
                             onEvent = viewModel::handleEvent
                         )
                         ConceptLinkerPhase.REVIEW -> ReviewPhaseScreen(
-                            state = uiState!!,
-                            onEvent = viewModel::handleEvent
+                            state = state.gameState,
+                            onEvent = viewModel::handleEvent,
+                            onFinish = viewModel::onFinishGame
                         )
                     }
                 }
@@ -535,7 +534,8 @@ private fun RelationTypeSelectorDialog(
 @Composable
 private fun ReviewPhaseScreen(
     state: ConceptLinkerState,
-    onEvent: (ConceptLinkerEvent) -> Unit
+    onEvent: (ConceptLinkerEvent) -> Unit,
+    onFinish: () -> Unit
 ) {
     // Calculate round stats
     val userConnectionsCount = state.userConnections.size
@@ -610,7 +610,7 @@ private fun ReviewPhaseScreen(
                 if (state.currentRound < state.totalRounds) {
                     onEvent(ConceptLinkerEvent.NextRound)
                 } else {
-                    onEvent(ConceptLinkerEvent.FinishGame)
+                    onFinish()
                 }
             },
             modifier = Modifier.fillMaxWidth()
