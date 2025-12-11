@@ -150,7 +150,7 @@ object SM2Algorithm {
         val oldEF = item.easinessFactor
 
         // Calculate new easiness factor
-        val newEF = (oldEF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)))
+        val newEF = (oldEF + (0.1f - (5 - q) * (0.08f + (5 - q) * 0.02f)))
             .coerceAtLeast(1.3f)  // Minimum EF is 1.3
 
         val newRepetitions: Int
