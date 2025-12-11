@@ -1,54 +1,52 @@
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.hilt)
-    alias(libs.plugins.ksp)
+    id("mindforge.android.library")
+    id("mindforge.android.compose")
+    id("mindforge.android.hilt")
 }
 
 android {
     namespace = "com.mindforge.feature.home"
 
-    compileSdk = 34
-
     defaultConfig {
-        minSdk = 26
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
-    buildFeatures {
-        compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.7"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 }
 
 dependencies {
+    // Core modules
+    implementation(project(":core:core-common"))
     implementation(project(":core:core-ui"))
     implementation(project(":core:core-domain"))
-    implementation(project(":core:core-common"))
+    implementation(project(":core:core-data"))
 
+    // Game modules
+    implementation(project(":games:game-core"))
+
+    // AndroidX
     implementation(libs.androidx.core.ktx)
     implementation(libs.bundles.lifecycle)
 
     // Compose
     implementation(platform(libs.compose.bom))
     implementation(libs.bundles.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+
+    // Navigation
+    implementation(libs.androidx.navigation.compose)
+
+    // Coroutines
+    implementation(libs.bundles.coroutines)
 
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
-    // Navigation
-    implementation(libs.androidx.navigation.compose)
+    // Testing
+    testImplementation(libs.bundles.testing.unit)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    androidTestImplementation(libs.bundles.testing.android)
+    androidTestImplementation(libs.compose.ui.test.manifest)
+    debugImplementation(libs.compose.ui.tooling)
 }
