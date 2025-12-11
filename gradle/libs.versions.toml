@@ -16,7 +16,7 @@ androidxActivity = "1.8.2"
 androidxAppCompat = "1.6.1"
 
 # Compose
-composeBom = "2024.01.00"
+composeBom = "2024.06.00"
 composeCompiler = "1.5.7"
 
 # Navigation
