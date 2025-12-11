@@ -28,11 +28,9 @@ class MemoryMatrixEngine(
 ) : BaseGameEngine<MemoryMatrixState, MemoryMatrixEvent, MemoryMatrixResult>() {
 
     private val _state = MutableStateFlow(
-        MemoryMatrixState(
-            difficulty = initialDifficulty
-        ).apply {
-            val params = MemoryMatrixParameters.forDifficulty(initialDifficulty)
-            copy(
+        MemoryMatrixParameters.forDifficulty(initialDifficulty).let { params ->
+            MemoryMatrixState(
+                difficulty = initialDifficulty,
                 gridSize = params.gridSize,
                 displayTimeMs = params.displayTimeMs,
                 totalRounds = params.roundsCount

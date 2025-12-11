@@ -82,11 +82,12 @@ class MemoryMatrixViewModel @Inject constructor(
         viewModelScope.launch {
             currentUserId?.let { userId ->
                 // Save game session
+                val endTime = System.currentTimeMillis()
                 val session = com.mindforge.core.domain.model.GameSession(
                     id = java.util.UUID.randomUUID().toString(),
                     gameType = com.mindforge.core.domain.model.GameType.MEMORY_MATRIX,
-                    startTime = result.timeTaken - result.timeTaken,  // Calculate actual start time if needed
-                    endTime = System.currentTimeMillis(),
+                    startTime = endTime - result.timeTaken,
+                    endTime = endTime,
                     score = result.score,
                     accuracy = result.accuracy,
                     difficultyLevel = result.difficulty,
