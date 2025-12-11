@@ -31,6 +31,10 @@ dependencies {
     implementation(project(":games:game-core"))
     implementation(project(":games:game-memory-matrix"))
     implementation(project(":games:game-task-prioritizer"))
+    implementation(project(":games:game-name-face"))
+    implementation(project(":games:game-meeting-recall"))
+    implementation(project(":games:game-concept-linker"))
+    implementation(project(":games:game-spaced-review"))
 
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
