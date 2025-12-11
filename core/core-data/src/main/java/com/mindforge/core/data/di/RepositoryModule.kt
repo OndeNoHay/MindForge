@@ -1,6 +1,8 @@
 package com.mindforge.core.data.di
 
+import com.mindforge.core.data.repository.GameSessionRepositoryImpl
 import com.mindforge.core.data.repository.UserRepositoryImpl
+import com.mindforge.core.domain.repository.GameSessionRepository
 import com.mindforge.core.domain.repository.UserRepository
 import dagger.Binds
 import dagger.Module
@@ -17,4 +19,10 @@ abstract class RepositoryModule {
     abstract fun bindUserRepository(
         userRepositoryImpl: UserRepositoryImpl
     ): UserRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindGameSessionRepository(
+        gameSessionRepositoryImpl: GameSessionRepositoryImpl
+    ): GameSessionRepository
 }

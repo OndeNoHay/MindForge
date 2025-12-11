@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.mindforge.core.common.Constants
 import com.mindforge.core.data.local.MindForgeDatabase
+import com.mindforge.core.data.local.dao.GameSessionDao
 import com.mindforge.core.data.local.dao.UserDao
 import dagger.Module
 import dagger.Provides
@@ -25,12 +26,20 @@ object DatabaseModule {
             context,
             MindForgeDatabase::class.java,
             Constants.DATABASE_NAME
-        ).build()
+        )
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides
     @Singleton
     fun provideUserDao(database: MindForgeDatabase): UserDao {
         return database.userDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideGameSessionDao(database: MindForgeDatabase): GameSessionDao {
+        return database.gameSessionDao()
     }
 }
