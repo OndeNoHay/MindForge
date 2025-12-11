@@ -49,11 +49,12 @@ sealed class MemoryMatrixEvent : GameEvent {
  * Result of a Memory Matrix game session
  */
 data class MemoryMatrixResult(
-    override val finalScore: Int,
-    override val xpEarned: Int,
+    override val score: Int,
     override val accuracy: Float,
-    override val timeSpentMs: Long,
+    override val timeTaken: Long,
     override val difficulty: DifficultyLevel,
+    override val xpEarned: Int,
+    override val passed: Boolean,
 
     // Memory Matrix specific results
     val totalRounds: Int,

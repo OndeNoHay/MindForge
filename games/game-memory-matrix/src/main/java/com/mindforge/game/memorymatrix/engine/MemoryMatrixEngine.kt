@@ -89,12 +89,16 @@ class MemoryMatrixEngine(
             roundResponseTimes.average().toLong()
         } else 0L
 
+        // Determine if player passed (60% accuracy threshold)
+        val passed = scoringSystem.hasPassed(accuracy)
+
         return MemoryMatrixResult(
-            finalScore = state.score,
-            xpEarned = xp,
+            score = state.score,
             accuracy = accuracy,
-            timeSpentMs = totalTime,
+            timeTaken = totalTime,
             difficulty = state.difficulty,
+            xpEarned = xp,
+            passed = passed,
             totalRounds = state.totalRounds,
             correctSelections = state.correctSelections,
             incorrectSelections = state.incorrectSelections,

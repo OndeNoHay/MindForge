@@ -353,9 +353,10 @@ private fun MemoryMatrixResultScreen(
                 modifier = Modifier.padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                ResultRow("Final Score", result.finalScore.toString())
+                ResultRow("Final Score", result.score.toString())
                 ResultRow("XP Earned", "+${result.xpEarned}")
                 ResultRow("Accuracy", "${(result.accuracy * 100).toInt()}%")
+                ResultRow("Status", if (result.passed) "✓ Passed" else "✗ Failed")
                 ResultRow("Correct Selections", result.correctSelections.toString())
                 ResultRow("Perfect Rounds", "${result.perfectRounds}/${result.totalRounds}")
             }
