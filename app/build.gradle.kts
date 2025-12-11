@@ -27,6 +27,10 @@ dependencies {
     // Feature modules
     implementation(project(":features:feature-home"))
 
+    // Game modules
+    implementation(project(":games:game-core"))
+    implementation(project(":games:game-memory-matrix"))
+
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.bundles.lifecycle)

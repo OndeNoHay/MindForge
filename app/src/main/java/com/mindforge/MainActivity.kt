@@ -5,14 +5,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import com.mindforge.core.difficulty.DifficultyLevel
 import com.mindforge.core.ui.theme.MindForgeTheme
+import com.mindforge.game.memorymatrix.ui.MemoryMatrixScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -25,32 +22,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MindForgeTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                    ) {
-                        Greeting("MindForge")
-                    }
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    // Launch Memory Matrix game directly for testing
+                    MemoryMatrixScreen(
+                        difficulty = DifficultyLevel.EASY,
+                        onNavigateBack = { finish() }
+                    )
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Welcome to $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    MindForgeTheme {
-        Greeting("MindForge")
     }
 }
