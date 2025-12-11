@@ -258,7 +258,8 @@ enum class GameType {
     TASK_PRIORITIZER,
     NAME_FACE,
     MEETING_RECALL,
-    CONCEPT_LINKER
+    CONCEPT_LINKER,
+    SPACED_REVIEW
 }
 
 // Game Info Data Class
@@ -301,6 +302,12 @@ private fun getAvailableGames(): List<GameInfo> {
             name = "Concept Linker",
             description = "Develop relational thinking",
             icon = Icons.Default.Link
+        ),
+        GameInfo(
+            type = GameType.SPACED_REVIEW,
+            name = "Spaced Review",
+            description = "Optimize long-term retention with spaced repetition",
+            icon = Icons.Default.Schedule
         )
     )
 }
