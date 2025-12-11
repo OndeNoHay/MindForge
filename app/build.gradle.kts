@@ -30,6 +30,7 @@ dependencies {
     // Game modules
     implementation(project(":games:game-core"))
     implementation(project(":games:game-memory-matrix"))
+    implementation(project(":games:game-task-prioritizer"))
 
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
