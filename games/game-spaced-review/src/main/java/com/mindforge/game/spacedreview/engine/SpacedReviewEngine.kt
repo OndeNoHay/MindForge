@@ -132,9 +132,15 @@ class SpacedReviewEngine(
         // Apply difficulty multiplier
         val difficultyMultiplier = when (_state.value.difficulty) {
             DifficultyLevel.BEGINNER -> 1.0f
-            DifficultyLevel.INTERMEDIATE -> 1.5f
-            DifficultyLevel.ADVANCED -> 2.0f
-            DifficultyLevel.EXPERT -> 2.5f
+            DifficultyLevel.EASY -> 1.2f
+            DifficultyLevel.MEDIUM -> 1.5f
+            DifficultyLevel.HARD -> 1.8f
+            DifficultyLevel.EXPERT -> 2.0f
+            DifficultyLevel.MASTER -> 2.3f
+            DifficultyLevel.GRANDMASTER -> 2.6f
+            DifficultyLevel.LEGENDARY -> 3.0f
+            DifficultyLevel.MYTHIC -> 3.5f
+            DifficultyLevel.DIVINE -> 4.0f
         }
         val scoredPoints = (pointsForQuality * difficultyMultiplier).toInt()
 
