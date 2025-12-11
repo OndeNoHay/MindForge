@@ -45,6 +45,17 @@ class GameSessionRepositoryImpl @Inject constructor(
         // This would need a new DAO query
         return 0 // TODO: Implement
     }
+
+    override suspend fun getTodaySessionCount(userId: String): Int {
+        val calendar = java.util.Calendar.getInstance()
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        calendar.set(java.util.Calendar.MINUTE, 0)
+        calendar.set(java.util.Calendar.SECOND, 0)
+        calendar.set(java.util.Calendar.MILLISECOND, 0)
+        val startOfDay = calendar.timeInMillis
+
+        return gameSessionDao.getTodaySessionCount(userId, startOfDay)
+    }
 }
 
 // Extension functions for mapping

@@ -32,4 +32,9 @@ interface GameSessionRepository {
      * Get total XP earned across all sessions
      */
     suspend fun getTotalXPEarned(): Int
+
+    /**
+     * Get today's session count for a specific user
+     */
+    suspend fun getTodaySessionCount(userId: String): Int
 }
