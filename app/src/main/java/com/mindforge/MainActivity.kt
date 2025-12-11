@@ -17,6 +17,7 @@ import com.mindforge.core.ui.theme.MindForgeTheme
 import com.mindforge.feature.home.GameType
 import com.mindforge.feature.home.HomeScreen
 import com.mindforge.game.memorymatrix.ui.MemoryMatrixScreen
+import com.mindforge.game.taskprioritizer.ui.TaskPrioritizerScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -52,6 +53,9 @@ fun MindForgeNavigation() {
                         GameType.MEMORY_MATRIX -> {
                             navController.navigate(Screen.MemoryMatrix.route)
                         }
+                        GameType.TASK_PRIORITIZER -> {
+                            navController.navigate(Screen.TaskPrioritizer.route)
+                        }
                         else -> {
                             // Other games not implemented yet
                         }
@@ -68,6 +72,15 @@ fun MindForgeNavigation() {
                 }
             )
         }
+
+        composable(Screen.TaskPrioritizer.route) {
+            TaskPrioritizerScreen(
+                difficulty = DifficultyLevel.BEGINNER,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
 
@@ -77,4 +90,5 @@ fun MindForgeNavigation() {
 sealed class Screen(val route: String) {
     object Home : Screen("home")
     object MemoryMatrix : Screen("memory_matrix")
+    object TaskPrioritizer : Screen("task_prioritizer")
 }
