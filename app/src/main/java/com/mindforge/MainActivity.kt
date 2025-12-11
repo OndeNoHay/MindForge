@@ -30,7 +30,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MindForgeTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    MindForgeApp()
+                    MindForgeNavigation()
                 }
             }
         }
@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MindForgeApp() {
+fun MindForgeNavigation() {
     val navController = rememberNavController()
 
     NavHost(
